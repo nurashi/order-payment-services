@@ -3,15 +3,19 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 
+	paymentv1 "github.com/nurashi/ap2-proto-gen/payment/v1"
 	"github.com/nurashi/payment-service/internal/api"
 	"github.com/nurashi/payment-service/internal/config"
+	grpcserver "github.com/nurashi/payment-service/internal/grpc"
 	"github.com/nurashi/payment-service/internal/migration"
 	"github.com/nurashi/payment-service/internal/repository"
 	"github.com/nurashi/payment-service/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -32,26 +36,38 @@ func main() {
 
 	log.Println("Connected to payment database successfully")
 
-
 	if err := migration.Run(cfg.GetDSN()); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 	log.Println("Migrations applied successfully")
 
 	paymentRepo := repository.NewPaymentRepository(dbpool)
-	paymentService := service.NewPaymentService(paymentRepo)
-	paymentHandler := api.NewPaymentHandler(paymentService)
+	paymentSvc := service.NewPaymentService(paymentRepo)
 
+	go func() {
+		lis, err := net.Listen("tcp", ":"+cfg.Server.GRPCPort)
+		if err != nil {
+			log.Fatalf("Failed to listen on gRPC port %s: %v", cfg.Server.GRPCPort, err)
+		}
+		grpcSrv := grpc.NewServer(
+			grpc.UnaryInterceptor(grpcserver.LoggingInterceptor),
+		)
+		paymentv1.RegisterPaymentServiceServer(grpcSrv, grpcserver.NewPaymentServer(paymentSvc))
+		log.Printf("Payment gRPC server starting on port %s", cfg.Server.GRPCPort)
+		if err := grpcSrv.Serve(lis); err != nil {
+			log.Fatalf("gRPC server failed: %v", err)
+		}
+	}()
+
+	paymentHandler := api.NewPaymentHandler(paymentSvc)
 	router := gin.Default()
-
 	paymentHandler.RegisterRoutes(router)
-
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok", "service": "payment-service"})
 	})
 
-	log.Printf("Payment Service starting on port %s", cfg.Server.Port)
+	log.Printf("Payment HTTP server starting on port %s", cfg.Server.Port)
 	if err := router.Run(":" + cfg.Server.Port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		log.Fatalf("Failed to start HTTP server: %v", err)
 	}
 }
