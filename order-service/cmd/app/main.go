@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 
+	orderv1 "github.com/nurashi/ap2-proto-gen/order/v1"
 	"github.com/nurashi/order-service/internal/api"
 	"github.com/nurashi/order-service/internal/config"
 	grpcclient "github.com/nurashi/order-service/internal/grpc"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -44,9 +47,23 @@ func main() {
 	}
 
 	orderRepo := repository.NewOrderRepository(dbpool)
+	orderSubscriber := repository.NewOrderSubscriber(cfg.GetDSN())
 	orderSvc := service.NewOrderService(orderRepo, paymentClient)
-	orderHandler := api.NewOrderHandler(orderSvc)
 
+	go func() {
+		lis, err := net.Listen("tcp", ":"+cfg.Server.GRPCPort)
+		if err != nil {
+			log.Fatalf("Failed to listen on gRPC port %s: %v", cfg.Server.GRPCPort, err)
+		}
+		grpcSrv := grpc.NewServer()
+		orderv1.RegisterOrderServiceServer(grpcSrv, grpcclient.NewOrderServer(orderSubscriber))
+		log.Printf("Order gRPC server starting on port %s", cfg.Server.GRPCPort)
+		if err := grpcSrv.Serve(lis); err != nil {
+			log.Fatalf("Order gRPC server failed: %v", err)
+		}
+	}()
+
+	orderHandler := api.NewOrderHandler(orderSvc)
 	router := gin.Default()
 	orderHandler.RegisterRoutes(router)
 	router.GET("/health", func(c *gin.Context) {

@@ -1,6 +1,9 @@
 package domain
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type OrderStatus string
 
@@ -25,4 +28,8 @@ type OrderRepository interface {
 	Create(order *Order) error
 	GetByID(id string) (*Order, error)
 	Update(order *Order) error
+}
+
+type OrderSubscriber interface {
+	SubscribeToOrderUpdates(ctx context.Context, orderID string) (<-chan *Order, error)
 }

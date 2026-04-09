@@ -93,5 +93,11 @@ func (r *orderRepository) Update(order *domain.Order) error {
 		return fmt.Errorf("order not found")
 	}
 
+	_, _ = r.db.Exec(
+		context.Background(),
+		"SELECT pg_notify('order_updates', $1)",
+		order.ID+":"+string(order.Status),
+	)
+
 	return nil
 }
