@@ -28,7 +28,7 @@ type DatabaseConfig struct {
 }
 
 type PaymentServiceConfig struct {
-	URL string
+	GRPCAddress string
 }
 
 func Load() (*Config, error) {
@@ -49,7 +49,7 @@ func Load() (*Config, error) {
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 		PaymentService: PaymentServiceConfig{
-			URL: getEnv("PAYMENT_SERVICE_URL", "http://localhost:8081"),
+			GRPCAddress: getEnv("PAYMENT_GRPC_ADDRESS", "localhost:9091"),
 		},
 	}
 

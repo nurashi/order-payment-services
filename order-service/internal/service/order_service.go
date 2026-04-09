@@ -1,11 +1,7 @@
 package service
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"time"
 
 	"github.com/nurashi/order-service/internal/domain"
@@ -15,68 +11,6 @@ import (
 
 type PaymentClient interface {
 	ProcessPayment(orderID string, amount int64) (string, error)
-}
-
-type httpPaymentClient struct {
-	baseURL    string
-	httpClient *http.Client
-}
-
-func NewHTTPPaymentClient(baseURL string) PaymentClient {
-	return &httpPaymentClient{
-		baseURL: baseURL,
-		httpClient: &http.Client{
-			Timeout: 2 * time.Second,
-		},
-	}
-}
-
-type processPaymentRequest struct {
-	OrderID string `json:"order_id"`
-	Amount  int64  `json:"amount"`
-}
-
-type processPaymentResponse struct {
-	Status string `json:"status"`
-}
-
-func (c *httpPaymentClient) ProcessPayment(orderID string, amount int64) (string, error) {
-	reqBody := processPaymentRequest{
-		OrderID: orderID,
-		Amount:  amount,
-	}
-
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	resp, err := c.httpClient.Post(
-		c.baseURL+"/payments/process",
-		"application/json",
-		bytes.NewBuffer(jsonData),
-	)
-
-	if err != nil {
-		return "", fmt.Errorf("payment service unavailable: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("failed to read response: %w", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("payment service returned error: %d", resp.StatusCode)
-	}
-
-	var paymentResp processPaymentResponse
-	if err := json.Unmarshal(body, &paymentResp); err != nil {
-		return "", fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	return paymentResp.Status, nil
 }
 
 type OrderService interface {
