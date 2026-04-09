@@ -6,6 +6,7 @@ import (
 
 	"github.com/nurashi/order-service/internal/api"
 	"github.com/nurashi/order-service/internal/config"
+	grpcclient "github.com/nurashi/order-service/internal/grpc"
 	"github.com/nurashi/order-service/internal/migration"
 	"github.com/nurashi/order-service/internal/repository"
 	"github.com/nurashi/order-service/internal/service"
@@ -37,15 +38,17 @@ func main() {
 	}
 	log.Println("Migrations applied successfully")
 
+	paymentClient, err := grpcclient.NewPaymentClient(cfg.PaymentService.GRPCAddress)
+	if err != nil {
+		log.Fatalf("Failed to create payment gRPC client: %v", err)
+	}
+
 	orderRepo := repository.NewOrderRepository(dbpool)
-	paymentClient := service.NewHTTPPaymentClient(cfg.PaymentService.URL)
-	orderService := service.NewOrderService(orderRepo, paymentClient)
-	orderHandler := api.NewOrderHandler(orderService)
+	orderSvc := service.NewOrderService(orderRepo, paymentClient)
+	orderHandler := api.NewOrderHandler(orderSvc)
 
 	router := gin.Default()
-
 	orderHandler.RegisterRoutes(router)
-
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok", "service": "order-service"})
 	})
