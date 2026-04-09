@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	paymentv1 "github.com/nurashi/ap2-proto-gen/payment/v1"
+	paymentv1 "github.com/nurashi/order-service/gen/payment/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

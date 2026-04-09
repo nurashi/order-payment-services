@@ -139,7 +139,7 @@ const file_order_v1_order_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt2`\n" +
 	"\fOrderService\x12P\n" +
-	"\x17SubscribeToOrderUpdates\x12\x16.order.v1.OrderRequest\x1a\x1b.order.v1.OrderStatusUpdate0\x01B3Z1github.com/nurashi/ap2-proto-gen/order/v1;orderv1b\x06proto3"
+	"\x17SubscribeToOrderUpdates\x12\x16.order.v1.OrderRequest\x1a\x1b.order.v1.OrderStatusUpdate0\x01B7Z5github.com/nurashi/order-service/gen/order/v1;orderv1b\x06proto3"
 
 var (
 	file_order_v1_order_proto_rawDescOnce sync.Once

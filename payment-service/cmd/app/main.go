@@ -5,7 +5,7 @@ import (
 	"log"
 	"net"
 
-	paymentv1 "github.com/nurashi/ap2-proto-gen/payment/v1"
+	paymentv1 "github.com/nurashi/payment-service/gen/payment/v1"
 	"github.com/nurashi/payment-service/internal/api"
 	"github.com/nurashi/payment-service/internal/config"
 	grpcserver "github.com/nurashi/payment-service/internal/grpc"

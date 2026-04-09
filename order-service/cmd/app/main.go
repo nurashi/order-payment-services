@@ -5,7 +5,7 @@ import (
 	"log"
 	"net"
 
-	orderv1 "github.com/nurashi/ap2-proto-gen/order/v1"
+	orderv1 "github.com/nurashi/order-service/gen/order/v1"
 	"github.com/nurashi/order-service/internal/api"
 	"github.com/nurashi/order-service/internal/config"
 	grpcclient "github.com/nurashi/order-service/internal/grpc"

@@ -1,2 +1,9 @@
 .env
 .idea/
+
+# compiled binaries
+/order-service/main
+/order-service/app
+/payment-service/main
+/payment-service/app
+*.exe

@@ -3,7 +3,7 @@ package grpc
 import (
 	"time"
 
-	orderv1 "github.com/nurashi/ap2-proto-gen/order/v1"
+	orderv1 "github.com/nurashi/order-service/gen/order/v1"
 	"github.com/nurashi/order-service/internal/domain"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

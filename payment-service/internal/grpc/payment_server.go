@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	paymentv1 "github.com/nurashi/ap2-proto-gen/payment/v1"
+	paymentv1 "github.com/nurashi/payment-service/gen/payment/v1"
 	"github.com/nurashi/payment-service/internal/service"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

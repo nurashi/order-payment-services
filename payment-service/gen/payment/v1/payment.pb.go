@@ -158,7 +158,7 @@ const file_payment_v1_payment_proto_rawDesc = "" +
 	"\x06status\x18\x03 \x01(\tR\x06status\x12=\n" +
 	"\fprocessed_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\vprocessedAt2[\n" +
 	"\x0ePaymentService\x12I\n" +
-	"\x0eProcessPayment\x12\x1a.payment.v1.PaymentRequest\x1a\x1b.payment.v1.PaymentResponseB7Z5github.com/nurashi/ap2-proto-gen/payment/v1;paymentv1b\x06proto3"
+	"\x0eProcessPayment\x12\x1a.payment.v1.PaymentRequest\x1a\x1b.payment.v1.PaymentResponseB=Z;github.com/nurashi/payment-service/gen/payment/v1;paymentv1b\x06proto3"
 
 var (
 	file_payment_v1_payment_proto_rawDescOnce sync.Once

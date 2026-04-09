@@ -3,7 +3,6 @@ module github.com/nurashi/order-service
 go 1.26.1
 
 require (
-	github.com/nurashi/ap2-proto-gen v0.0.0
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
@@ -50,5 +49,3 @@ require (
 	google.golang.org/grpc v1.73.0
 	google.golang.org/protobuf v1.36.11 // indirect
 )
-
-replace github.com/nurashi/ap2-proto-gen => ../proto-gen
