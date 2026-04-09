@@ -16,8 +16,8 @@ message PaymentRequest {
 }
 
 message PaymentResponse {
-  string                    payment_id    = 1;
-  string                    order_id      = 2;
-  string                    status        = 3;
-  google.protobuf.Timestamp processed_at  = 4;
+  string                    payment_id   = 1;
+  string                    order_id     = 2;
+  string                    status       = 3;
+  google.protobuf.Timestamp processed_at = 4;
 }
