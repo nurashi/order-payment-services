@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -58,6 +59,7 @@ func main() {
 		}
 		grpcSrv := grpc.NewServer()
 		orderpb.RegisterOrderServiceServer(grpcSrv, grpcclient.NewOrderServer(orderSubscriber))
+		reflection.Register(grpcSrv)
 		log.Printf("Order gRPC server listening on %s", addr)
 		if err := grpcSrv.Serve(lis); err != nil {
 			log.Fatalf("Order gRPC server failed: %v", err)

@@ -16,6 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -54,6 +55,7 @@ func main() {
 			grpc.UnaryInterceptor(grpcserver.LoggingInterceptor),
 		)
 		paymentpb.RegisterPaymentServiceServer(grpcSrv, grpcserver.NewPaymentServer(paymentSvc))
+		reflection.Register(grpcSrv)
 		log.Printf("Payment gRPC server listening on %s", addr)
 		if err := grpcSrv.Serve(lis); err != nil {
 			log.Fatalf("gRPC server failed: %v", err)
