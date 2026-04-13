@@ -4,18 +4,18 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nurashi/order-service/internal/domain"
 )
 
 type orderSubscriber struct {
-	dsn string
+	dsn  string
+	repo domain.OrderRepository
 }
 
-func NewOrderSubscriber(dsn string) domain.OrderSubscriber {
-	return &orderSubscriber{dsn: dsn}
+func NewOrderSubscriber(dsn string, repo domain.OrderRepository) domain.OrderSubscriber {
+	return &orderSubscriber{dsn: dsn, repo: repo}
 }
 
 func (s *orderSubscriber) SubscribeToOrderUpdates(ctx context.Context, orderID string) (<-chan *domain.Order, error) {
@@ -55,11 +55,11 @@ func (s *orderSubscriber) SubscribeToOrderUpdates(ctx context.Context, orderID s
 				continue
 			}
 
-			ch <- &domain.Order{
-				ID:        parts[0],
-				Status:    domain.OrderStatus(parts[1]),
-				UpdatedAt: time.Now(),
+			order, err := s.repo.GetByID(parts[0])
+			if err != nil {
+				continue
 			}
+			ch <- order
 		}
 	}()
 

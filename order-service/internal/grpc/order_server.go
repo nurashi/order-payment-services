@@ -1,9 +1,7 @@
 package grpc
 
 import (
-	"time"
-
-	orderv1 "github.com/nurashi/order-service/gen/order/v1"
+	orderpb "github.com/nurashi/ap2-generated/order/v1"
 	"github.com/nurashi/order-service/internal/domain"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -11,7 +9,7 @@ import (
 )
 
 type OrderServer struct {
-	orderv1.UnimplementedOrderServiceServer
+	orderpb.UnimplementedOrderServiceServer
 	subscriber domain.OrderSubscriber
 }
 
@@ -19,7 +17,7 @@ func NewOrderServer(subscriber domain.OrderSubscriber) *OrderServer {
 	return &OrderServer{subscriber: subscriber}
 }
 
-func (s *OrderServer) SubscribeToOrderUpdates(req *orderv1.OrderRequest, stream orderv1.OrderService_SubscribeToOrderUpdatesServer) error {
+func (s *OrderServer) SubscribeToOrderUpdates(req *orderpb.OrderRequest, stream orderpb.OrderService_SubscribeToOrderUpdatesServer) error {
 	if req.OrderId == "" {
 		return status.Error(codes.InvalidArgument, "order_id is required")
 	}
@@ -30,10 +28,10 @@ func (s *OrderServer) SubscribeToOrderUpdates(req *orderv1.OrderRequest, stream 
 	}
 
 	for order := range ch {
-		update := &orderv1.OrderStatusUpdate{
+		update := &orderpb.OrderStatusUpdate{
 			OrderId:   order.ID,
 			Status:    string(order.Status),
-			UpdatedAt: timestamppb.New(time.Now()),
+			UpdatedAt: timestamppb.New(order.UpdatedAt),
 		}
 		if err := stream.Send(update); err != nil {
 			return status.Errorf(codes.Unavailable, "failed to send update: %v", err)

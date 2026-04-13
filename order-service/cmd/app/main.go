@@ -5,7 +5,7 @@ import (
 	"log"
 	"net"
 
-	orderv1 "github.com/nurashi/order-service/gen/order/v1"
+	orderpb "github.com/nurashi/ap2-generated/order/v1"
 	"github.com/nurashi/order-service/internal/api"
 	"github.com/nurashi/order-service/internal/config"
 	grpcclient "github.com/nurashi/order-service/internal/grpc"
@@ -47,17 +47,18 @@ func main() {
 	}
 
 	orderRepo := repository.NewOrderRepository(dbpool)
-	orderSubscriber := repository.NewOrderSubscriber(cfg.GetDSN())
+	orderSubscriber := repository.NewOrderSubscriber(cfg.GetDSN(), orderRepo)
 	orderSvc := service.NewOrderService(orderRepo, paymentClient)
 
 	go func() {
-		lis, err := net.Listen("tcp", ":"+cfg.Server.GRPCPort)
+		addr := cfg.GRPCListenAddr()
+		lis, err := net.Listen("tcp", addr)
 		if err != nil {
-			log.Fatalf("Failed to listen on gRPC port %s: %v", cfg.Server.GRPCPort, err)
+			log.Fatalf("Failed to listen on gRPC %s: %v", addr, err)
 		}
 		grpcSrv := grpc.NewServer()
-		orderv1.RegisterOrderServiceServer(grpcSrv, grpcclient.NewOrderServer(orderSubscriber))
-		log.Printf("Order gRPC server starting on port %s", cfg.Server.GRPCPort)
+		orderpb.RegisterOrderServiceServer(grpcSrv, grpcclient.NewOrderServer(orderSubscriber))
+		log.Printf("Order gRPC server listening on %s", addr)
 		if err := grpcSrv.Serve(lis); err != nil {
 			log.Fatalf("Order gRPC server failed: %v", err)
 		}

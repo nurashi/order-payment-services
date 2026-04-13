@@ -5,7 +5,7 @@ import (
 	"log"
 	"net"
 
-	paymentv1 "github.com/nurashi/payment-service/gen/payment/v1"
+	paymentpb "github.com/nurashi/ap2-generated/payment/v1"
 	"github.com/nurashi/payment-service/internal/api"
 	"github.com/nurashi/payment-service/internal/config"
 	grpcserver "github.com/nurashi/payment-service/internal/grpc"
@@ -45,15 +45,16 @@ func main() {
 	paymentSvc := service.NewPaymentService(paymentRepo)
 
 	go func() {
-		lis, err := net.Listen("tcp", ":"+cfg.Server.GRPCPort)
+		addr := cfg.GRPCListenAddr()
+		lis, err := net.Listen("tcp", addr)
 		if err != nil {
-			log.Fatalf("Failed to listen on gRPC port %s: %v", cfg.Server.GRPCPort, err)
+			log.Fatalf("Failed to listen on gRPC %s: %v", addr, err)
 		}
 		grpcSrv := grpc.NewServer(
 			grpc.UnaryInterceptor(grpcserver.LoggingInterceptor),
 		)
-		paymentv1.RegisterPaymentServiceServer(grpcSrv, grpcserver.NewPaymentServer(paymentSvc))
-		log.Printf("Payment gRPC server starting on port %s", cfg.Server.GRPCPort)
+		paymentpb.RegisterPaymentServiceServer(grpcSrv, grpcserver.NewPaymentServer(paymentSvc))
+		log.Printf("Payment gRPC server listening on %s", addr)
 		if err := grpcSrv.Serve(lis); err != nil {
 			log.Fatalf("gRPC server failed: %v", err)
 		}

@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"log"
+	"net"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -15,6 +16,7 @@ type Config struct {
 
 type ServerConfig struct {
 	Port     string
+	GRPCHost string
 	GRPCPort string
 }
 
@@ -35,6 +37,7 @@ func Load() (*Config, error) {
 	cfg := &Config{
 		Server: ServerConfig{
 			Port:     getEnv("PORT", "8081"),
+			GRPCHost: getEnv("GRPC_HOST", "0.0.0.0"),
 			GRPCPort: getEnv("GRPC_PORT", "9091"),
 		},
 		Database: DatabaseConfig{
@@ -48,6 +51,11 @@ func Load() (*Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// GRPCListenAddr returns host:port for the gRPC server from GRPC_HOST and GRPC_PORT.
+func (c *Config) GRPCListenAddr() string {
+	return net.JoinHostPort(c.Server.GRPCHost, c.Server.GRPCPort)
 }
 
 func (c *Config) GetDSN() string {
