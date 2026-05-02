@@ -1,6 +1,6 @@
 module github.com/nurashi/payment-service
 
-go 1.26.2
+go 1.25.0
 
 require (
 	github.com/gin-gonic/gin v1.12.0
@@ -9,6 +9,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/nurashi/ap2-generated v0.0.0-20260413094907-2dbaa48ed759
 	github.com/pressly/goose/v3 v3.26.0
+	github.com/rabbitmq/amqp091-go v1.11.0
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
 )
@@ -51,3 +52,5 @@ require (
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect
 )
+
+replace github.com/nurashi/ap2-generated => ./protos/ap2-generated

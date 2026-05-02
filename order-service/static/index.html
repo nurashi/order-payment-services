@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AP2 - Microservices Dashboard</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; }
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+h1 { text-align: center; margin-bottom: 20px; color: #1a1a2e; }
+.health-bar { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
+.health-badge { padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; }
+.health-badge.ok { background: #d4edda; color: #155724; }
+.health-badge.fail { background: #f8d7da; color: #721c24; }
+.health-badge.checking { background: #fff3cd; color: #856404; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+.card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.card h2 { font-size: 18px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; color: #555; }
+.form-group input { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+.form-group input:focus { outline: none; border-color: #4a90d9; }
+.btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500; }
+.btn-primary { background: #4a90d9; color: #fff; }
+.btn-primary:hover { background: #357abd; }
+.btn-danger { background: #dc3545; color: #fff; }
+.btn-danger:hover { background: #c82333; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e9ecef; }
+th { background: #f8f9fa; font-weight: 600; color: #555; }
+.status-paid { color: #28a745; font-weight: 600; }
+.status-pending { color: #ffc107; font-weight: 600; }
+.status-failed, .status-declined { color: #dc3545; font-weight: 600; }
+.status-cancelled { color: #6c757d; font-weight: 600; }
+.log-box { background: #1a1a2e; color: #a8ff78; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; margin-top: 10px; white-space: pre-wrap; }
+.actions { display: flex; gap: 8px; }
+.empty { text-align: center; color: #999; padding: 20px; font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Microservices Dashboard</h1>
+  <div class="health-bar" id="healthBar"></div>
+  <div class="grid">
+    <div class="card">
+      <h2>Create Order</h2>
+      <div class="form-group">
+        <label>Customer ID</label>
+        <input type="text" id="customerId" value="cust1">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="customerEmail" value="user@example.com">
+      </div>
+      <div class="form-group">
+        <label>Item Name</label>
+        <input type="text" id="itemName" value="Laptop">
+      </div>
+      <div class="form-group">
+        <label>Amount (cents)</label>
+        <input type="number" id="amount" value="9999">
+      </div>
+      <button class="btn btn-primary" onclick="createOrder()">Create Order</button>
+    </div>
+    <div class="card">
+      <h2>Process Payment</h2>
+      <div class="form-group">
+        <label>Order ID</label>
+        <input type="text" id="payOrderId" placeholder="Enter order ID">
+      </div>
+      <div class="form-group">
+        <label>Amount (cents)</label>
+        <input type="number" id="payAmount" value="5000">
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="payEmail" value="user@example.com">
+      </div>
+      <button class="btn btn-primary" onclick="processPayment()">Process Payment</button>
+    </div>
+    <div class="card">
+      <h2>Orders</h2>
+      <div class="actions" style="margin-bottom:10px">
+        <button class="btn btn-primary btn-sm" onclick="loadOrders()">Refresh</button>
+      </div>
+      <div id="ordersTable"></div>
+    </div>
+    <div class="card">
+      <h2>Payments</h2>
+      <div class="form-group">
+        <label>Payment ID</label>
+        <input type="text" id="paymentId" placeholder="Enter payment ID">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="loadPayment()" style="margin-bottom:10px">Get Payment</button>
+      <div id="paymentResult"></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px">
+    <h2>Notification Log</h2>
+    <div class="log-box" id="notifLog">Waiting for notifications...</div>
+  </div>
+</div>
+<script>
+const ORDER_URL = window.location.origin;
+const PAYMENT_URL = window.location.origin.replace('8080', '8081');
+
+async function checkHealth() {
+  const bar = document.getElementById('healthBar');
+  const services = [
+    { name: 'Order Service', url: ORDER_URL + '/health' },
+    { name: 'Payment Service', url: PAYMENT_URL + '/health' }
+  ];
+  bar.innerHTML = services.map(s => `<span class="health-badge checking" id="h-${s.name.replace(/ /g,'')}">${s.name}: checking...</span>`).join('');
+  for (const s of services) {
+    const el = document.getElementById('h-' + s.name.replace(/ /g,''));
+    try {
+      const r = await fetch(s.url);
+      const ok = r.ok;
+      el.className = 'health-badge ' + (ok ? 'ok' : 'fail');
+      el.textContent = s.name + ': ' + (ok ? 'OK' : 'FAIL');
+    } catch {
+      el.className = 'health-badge fail';
+      el.textContent = s.name + ': UNREACHABLE';
+    }
+  }
+}
+
+async function createOrder() {
+  const body = {
+    customer_id: document.getElementById('customerId').value,
+    customer_email: document.getElementById('customerEmail').value,
+    item_name: document.getElementById('itemName').value,
+    amount: parseInt(document.getElementById('amount').value)
+  };
+  try {
+    const r = await fetch(ORDER_URL + '/orders', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await r.json();
+    if (r.ok) {
+      alert('Order created: ' + data.id + '\nStatus: ' + data.status);
+      loadOrders();
+    } else {
+      alert('Error: ' + (data.error || JSON.stringify(data)));
+    }
+  } catch (e) {
+    alert('Request failed: ' + e.message);
+  }
+}
+
+async function processPayment() {
+  const body = {
+    order_id: document.getElementById('payOrderId').value,
+    amount: parseInt(document.getElementById('payAmount').value),
+    customer_email: document.getElementById('payEmail').value
+  };
+  try {
+    const r = await fetch(PAYMENT_URL + '/payments/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await r.json();
+    if (r.ok) {
+      alert('Payment processed: ' + data.id + '\nStatus: ' + data.status);
+    } else {
+      alert('Error: ' + (data.error || JSON.stringify(data)));
+    }
+  } catch (e) {
+    alert('Request failed: ' + e.message);
+  }
+}
+
+async function loadOrders() {
+  const container = document.getElementById('ordersTable');
+  container.innerHTML = '<div class="empty">Loading...</div>';
+  try {
+    const r = await fetch(ORDER_URL + '/orders');
+    if (r.ok) {
+      const orders = await r.json();
+      if (!orders.length) {
+        container.innerHTML = '<div class="empty">No orders yet</div>';
+        return;
+      }
+      let html = '<table><thead><tr><th>ID</th><th>Customer</th><th>Item</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+      orders.forEach(o => {
+        const cls = 'status-' + o.status.toLowerCase();
+        html += `<tr>
+          <td style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${o.id}</td>
+          <td>${o.customer_email}</td>
+          <td>${o.item_name}</td>
+          <td>$${(o.amount/100).toFixed(2)}</td>
+          <td class="${cls}">${o.status}</td>
+          <td>${o.status === 'Pending' ? `<button class="btn btn-danger btn-sm" onclick="cancelOrder('${o.id}')">Cancel</button>` : '-'}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    } else {
+      container.innerHTML = '<div class="empty">Failed to load orders</div>';
+    }
+  } catch {
+    container.innerHTML = '<div class="empty">Connection error</div>';
+  }
+}
+
+async function cancelOrder(id) {
+  try {
+    const r = await fetch(ORDER_URL + '/orders/' + id + '/cancel', { method: 'POST' });
+    if (r.ok) {
+      alert('Order cancelled');
+      loadOrders();
+    } else {
+      const data = await r.json();
+      alert('Error: ' + (data.error || JSON.stringify(data)));
+    }
+  } catch (e) {
+    alert('Request failed: ' + e.message);
+  }
+}
+
+async function loadPayment() {
+  const id = document.getElementById('paymentId').value;
+  const container = document.getElementById('paymentResult');
+  if (!id) { container.innerHTML = ''; return; }
+  try {
+    const r = await fetch(PAYMENT_URL + '/payments/' + id);
+    const data = await r.json();
+    if (r.ok) {
+      const cls = 'status-' + data.status.toLowerCase();
+      container.innerHTML = `<table><tr><th>Field</th><th>Value</th></tr>
+        <tr><td>ID</td><td style="font-size:11px">${data.id}</td></tr>
+        <tr><td>Order ID</td><td style="font-size:11px">${data.order_id}</td></tr>
+        <tr><td>Amount</td><td>$${(data.amount/100).toFixed(2)}</td></tr>
+        <tr><td>Status</td><td class="${cls}">${data.status}</td></tr>
+        <tr><td>Transaction</td><td style="font-size:11px">${data.transaction_id}</td></tr>
+      </table>`;
+    } else {
+      container.innerHTML = '<div class="empty">Payment not found</div>';
+    }
+  } catch {
+    container.innerHTML = '<div class="empty">Connection error</div>';
+  }
+}
+
+function addNotification(text) {
+  const box = document.getElementById('notifLog');
+  if (box.textContent === 'Waiting for notifications...') box.textContent = '';
+  box.textContent += text + '\n';
+  box.scrollTop = box.scrollHeight;
+}
+
+checkHealth();
+loadOrders();
+setInterval(checkHealth, 30000);
+</script>
+</body>
+</html>

@@ -19,8 +19,8 @@ func NewOrderRepository(db *pgxpool.Pool) domain.OrderRepository {
 
 func (r *orderRepository) Create(order *domain.Order) error {
 	query := `
-		INSERT INTO orders (id, customer_id, item_name, amount, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO orders (id, customer_id, customer_email, item_name, amount, status, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
 	_, err := r.db.Exec(
@@ -28,6 +28,7 @@ func (r *orderRepository) Create(order *domain.Order) error {
 		query,
 		order.ID,
 		order.CustomerID,
+		order.CustomerEmail,
 		order.ItemName,
 		order.Amount,
 		order.Status,
@@ -44,7 +45,7 @@ func (r *orderRepository) Create(order *domain.Order) error {
 
 func (r *orderRepository) GetByID(id string) (*domain.Order, error) {
 	query := `
-		SELECT id, customer_id, item_name, amount, status, created_at, updated_at
+		SELECT id, customer_id, customer_email, item_name, amount, status, created_at, updated_at
 		FROM orders
 		WHERE id = $1
 	`
@@ -53,6 +54,7 @@ func (r *orderRepository) GetByID(id string) (*domain.Order, error) {
 	err := r.db.QueryRow(context.Background(), query, id).Scan(
 		&order.ID,
 		&order.CustomerID,
+		&order.CustomerEmail,
 		&order.ItemName,
 		&order.Amount,
 		&order.Status,
@@ -67,10 +69,44 @@ func (r *orderRepository) GetByID(id string) (*domain.Order, error) {
 	return order, nil
 }
 
+func (r *orderRepository) GetAll() ([]*domain.Order, error) {
+	query := `
+		SELECT id, customer_id, customer_email, item_name, amount, status, created_at, updated_at
+		FROM orders
+		ORDER BY created_at DESC
+	`
+
+	rows, err := r.db.Query(context.Background(), query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query orders: %w", err)
+	}
+	defer rows.Close()
+
+	var orders []*domain.Order
+	for rows.Next() {
+		order := &domain.Order{}
+		if err := rows.Scan(
+			&order.ID,
+			&order.CustomerID,
+			&order.CustomerEmail,
+			&order.ItemName,
+			&order.Amount,
+			&order.Status,
+			&order.CreatedAt,
+			&order.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan order: %w", err)
+		}
+		orders = append(orders, order)
+	}
+
+	return orders, nil
+}
+
 func (r *orderRepository) Update(order *domain.Order) error {
 	query := `
 		UPDATE orders
-		SET customer_id = $2, item_name = $3, amount = $4, status = $5, updated_at = $6
+		SET customer_id = $2, customer_email = $3, item_name = $4, amount = $5, status = $6, updated_at = $7
 		WHERE id = $1
 	`
 
@@ -79,6 +115,7 @@ func (r *orderRepository) Update(order *domain.Order) error {
 		query,
 		order.ID,
 		order.CustomerID,
+		order.CustomerEmail,
 		order.ItemName,
 		order.Amount,
 		order.Status,

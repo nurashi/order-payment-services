@@ -27,7 +27,7 @@ func (s *PaymentServer) ProcessPayment(ctx context.Context, req *paymentpb.Payme
 		return nil, status.Error(codes.InvalidArgument, "amount must be positive")
 	}
 
-	payment, err := s.svc.ProcessPayment(req.OrderId, req.Amount)
+	payment, err := s.svc.ProcessPayment(req.OrderId, req.Amount, req.CustomerEmail)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "payment processing failed: %v", err)
 	}

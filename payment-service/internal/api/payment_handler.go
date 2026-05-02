@@ -17,8 +17,9 @@ func NewPaymentHandler(service service.PaymentService) *PaymentHandler {
 }
 
 type ProcessPaymentRequest struct {
-	OrderID string `json:"order_id" binding:"required"`
-	Amount  int64  `json:"amount" binding:"required"`
+	OrderID       string `json:"order_id" binding:"required"`
+	Amount        int64  `json:"amount" binding:"required"`
+	CustomerEmail string `json:"customer_email" binding:"required"`
 }
 
 type PaymentResponse struct {
@@ -36,7 +37,7 @@ func (h *PaymentHandler) ProcessPayment(c *gin.Context) {
 		return
 	}
 
-	payment, err := h.service.ProcessPayment(req.OrderID, req.Amount)
+	payment, err := h.service.ProcessPayment(req.OrderID, req.Amount, req.CustomerEmail)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
