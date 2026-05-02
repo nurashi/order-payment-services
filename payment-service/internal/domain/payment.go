@@ -14,6 +14,7 @@ type Payment struct {
 	OrderID       string
 	TransactionID string
 	Amount        int64
+	CustomerEmail string
 	Status        PaymentStatus
 	CreatedAt     time.Time
 	UpdatedAt     time.Time

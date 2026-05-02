@@ -12,6 +12,7 @@ import (
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
+	RabbitMQ RabbitMQConfig
 }
 
 type ServerConfig struct {
@@ -27,6 +28,13 @@ type DatabaseConfig struct {
 	Password string
 	DBName   string
 	SSLMode  string
+}
+
+type RabbitMQConfig struct {
+	Host     string
+	Port     string
+	User     string
+	Password string
 }
 
 func Load() (*Config, error) {
@@ -47,6 +55,12 @@ func Load() (*Config, error) {
 			Password: getEnv("DB_PASSWORD", "postgres"),
 			DBName:   getEnv("DB_NAME", "payment_db"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
+		},
+		RabbitMQ: RabbitMQConfig{
+			Host:     getEnv("RABBITMQ_HOST", "localhost"),
+			Port:     getEnv("RABBITMQ_PORT", "5672"),
+			User:     getEnv("RABBITMQ_USER", "guest"),
+			Password: getEnv("RABBITMQ_PASSWORD", "guest"),
 		},
 	}
 

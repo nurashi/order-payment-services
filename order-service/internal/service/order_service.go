@@ -10,12 +10,13 @@ import (
 )
 
 type PaymentClient interface {
-	ProcessPayment(orderID string, amount int64) (string, error)
+	ProcessPayment(orderID string, amount int64, customerEmail string) (string, error)
 }
 
 type OrderService interface {
-	CreateOrder(customerID, itemName string, amount int64) (*domain.Order, error)
+	CreateOrder(customerID, customerEmail, itemName string, amount int64) (*domain.Order, error)
 	GetOrder(id string) (*domain.Order, error)
+	GetAllOrders() ([]*domain.Order, error)
 	CancelOrder(id string) error
 }
 
@@ -31,22 +32,23 @@ func NewOrderService(repo domain.OrderRepository, paymentClient PaymentClient) O
 	}
 }
 
-func (s *orderService) CreateOrder(customerID, itemName string, amount int64) (*domain.Order, error) {
+func (s *orderService) CreateOrder(customerID, customerEmail, itemName string, amount int64) (*domain.Order, error) {
 	order := &domain.Order{
-		ID:         uuid.New().String(),
-		CustomerID: customerID,
-		ItemName:   itemName,
-		Amount:     amount,
-		Status:     domain.OrderStatusPending,
-		CreatedAt:  time.Now(),
-		UpdatedAt:  time.Now(),
+		ID:            uuid.New().String(),
+		CustomerID:    customerID,
+		CustomerEmail: customerEmail,
+		ItemName:      itemName,
+		Amount:        amount,
+		Status:        domain.OrderStatusPending,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
 	}
 
 	if err := s.repo.Create(order); err != nil {
 		return nil, fmt.Errorf("failed to create order: %w", err)
 	}
 
-	paymentStatus, err := s.paymentClient.ProcessPayment(order.ID, amount)
+	paymentStatus, err := s.paymentClient.ProcessPayment(order.ID, amount, customerEmail)
 	if err != nil {
 		order.Status = domain.OrderStatusFailed
 		order.UpdatedAt = time.Now()
@@ -72,6 +74,10 @@ func (s *orderService) CreateOrder(customerID, itemName string, amount int64) (*
 
 func (s *orderService) GetOrder(id string) (*domain.Order, error) {
 	return s.repo.GetByID(id)
+}
+
+func (s *orderService) GetAllOrders() ([]*domain.Order, error) {
+	return s.repo.GetAll()
 }
 
 func (s *orderService) CancelOrder(id string) error {

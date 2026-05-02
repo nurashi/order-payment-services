@@ -19,8 +19,8 @@ func NewPaymentRepository(db *pgxpool.Pool) domain.PaymentRepository {
 
 func (r *paymentRepository) Create(payment *domain.Payment) error {
 	query := `
-		INSERT INTO payments (id, order_id, transaction_id, amount, status, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO payments (id, order_id, transaction_id, amount, customer_email, status, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
 	_, err := r.db.Exec(
@@ -30,6 +30,7 @@ func (r *paymentRepository) Create(payment *domain.Payment) error {
 		payment.OrderID,
 		payment.TransactionID,
 		payment.Amount,
+		payment.CustomerEmail,
 		payment.Status,
 		payment.CreatedAt,
 		payment.UpdatedAt,
@@ -44,7 +45,7 @@ func (r *paymentRepository) Create(payment *domain.Payment) error {
 
 func (r *paymentRepository) GetByID(id string) (*domain.Payment, error) {
 	query := `
-		SELECT id, order_id, transaction_id, amount, status, created_at, updated_at
+		SELECT id, order_id, transaction_id, amount, customer_email, status, created_at, updated_at
 		FROM payments
 		WHERE id = $1
 	`
@@ -55,6 +56,7 @@ func (r *paymentRepository) GetByID(id string) (*domain.Payment, error) {
 		&payment.OrderID,
 		&payment.TransactionID,
 		&payment.Amount,
+		&payment.CustomerEmail,
 		&payment.Status,
 		&payment.CreatedAt,
 		&payment.UpdatedAt,
@@ -69,7 +71,7 @@ func (r *paymentRepository) GetByID(id string) (*domain.Payment, error) {
 
 func (r *paymentRepository) GetByOrderID(orderID string) (*domain.Payment, error) {
 	query := `
-		SELECT id, order_id, transaction_id, amount, status, created_at, updated_at
+		SELECT id, order_id, transaction_id, amount, customer_email, status, created_at, updated_at
 		FROM payments
 		WHERE order_id = $1
 	`
@@ -80,6 +82,7 @@ func (r *paymentRepository) GetByOrderID(orderID string) (*domain.Payment, error
 		&payment.OrderID,
 		&payment.TransactionID,
 		&payment.Amount,
+		&payment.CustomerEmail,
 		&payment.Status,
 		&payment.CreatedAt,
 		&payment.UpdatedAt,
