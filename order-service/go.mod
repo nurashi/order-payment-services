@@ -1,6 +1,6 @@
 module github.com/nurashi/order-service
 
-go 1.26.2
+go 1.25.0
 
 require (
 	github.com/gin-gonic/gin v1.12.0
@@ -51,3 +51,5 @@ require (
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260120221211-b8f7ae30c516 // indirect
 )
+
+replace github.com/nurashi/ap2-generated => ./protos/ap2-generated
