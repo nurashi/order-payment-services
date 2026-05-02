@@ -1,6 +1,6 @@
 module github.com/nurashi/ap2-generated
 
-go 1.25
+go 1.26.2
 
 require (
 	golang.org/x/net v0.49.0 // indirect
