@@ -4,6 +4,9 @@ import (
 	"context"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	orderpb "github.com/nurashi/ap2-generated/order/v1"
 	"github.com/nurashi/order-service/internal/api"
@@ -51,30 +54,58 @@ func main() {
 	orderSubscriber := repository.NewOrderSubscriber(cfg.GetDSN(), orderRepo)
 	orderSvc := service.NewOrderService(orderRepo, paymentClient)
 
+	grpcSrv := grpc.NewServer()
+	orderpb.RegisterOrderServiceServer(grpcSrv, grpcclient.NewOrderServer(orderSubscriber))
+	reflection.Register(grpcSrv)
+
 	go func() {
 		addr := cfg.GRPCListenAddr()
 		lis, err := net.Listen("tcp", addr)
 		if err != nil {
 			log.Fatalf("Failed to listen on gRPC %s: %v", addr, err)
 		}
-		grpcSrv := grpc.NewServer()
-		orderpb.RegisterOrderServiceServer(grpcSrv, grpcclient.NewOrderServer(orderSubscriber))
-		reflection.Register(grpcSrv)
 		log.Printf("Order gRPC server listening on %s", addr)
 		if err := grpcSrv.Serve(lis); err != nil {
-			log.Fatalf("Order gRPC server failed: %v", err)
+			log.Printf("Order gRPC server failed: %v", err)
 		}
 	}()
 
 	orderHandler := api.NewOrderHandler(orderSvc)
 	router := gin.Default()
+	router.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type")
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	})
+	router.Static("/static", "./static")
+	router.NoRoute(func(c *gin.Context) {
+		c.File("./static/index.html")
+	})
 	orderHandler.RegisterRoutes(router)
 	router.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{"status": "ok", "service": "order-service"})
 	})
 
-	log.Printf("Order Service starting on port %s", cfg.Server.Port)
-	if err := router.Run(":" + cfg.Server.Port); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
-	}
+	go func() {
+		log.Printf("Order Service starting on port %s", cfg.Server.Port)
+		if err := router.Run(":" + cfg.Server.Port); err != nil {
+			log.Fatalf("Failed to start server: %v", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down order service...")
+
+	grpcSrv.GracefulStop()
+	dbpool.Close()
+
+	log.Println("Order service stopped")
 }
