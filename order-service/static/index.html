@@ -3,259 +3,723 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AP2 - Microservices Dashboard</title>
+<title>AP2 Microservices Dashboard</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f5f5f5; color: #333; }
-.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
-h1 { text-align: center; margin-bottom: 20px; color: #1a1a2e; }
-.health-bar { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
-.health-badge { padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500; }
-.health-badge.ok { background: #d4edda; color: #155724; }
-.health-badge.fail { background: #f8d7da; color: #721c24; }
-.health-badge.checking { background: #fff3cd; color: #856404; }
-.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-@media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
-.card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.card h2 { font-size: 18px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #e9ecef; }
-.form-group { margin-bottom: 12px; }
-.form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 4px; color: #555; }
-.form-group input { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
-.form-group input:focus { outline: none; border-color: #4a90d9; }
-.btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500; }
-.btn-primary { background: #4a90d9; color: #fff; }
-.btn-primary:hover { background: #357abd; }
-.btn-danger { background: #dc3545; color: #fff; }
-.btn-danger:hover { background: #c82333; }
-.btn-sm { padding: 4px 10px; font-size: 12px; }
-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #e9ecef; }
-th { background: #f8f9fa; font-weight: 600; color: #555; }
-.status-paid { color: #28a745; font-weight: 600; }
-.status-pending { color: #ffc107; font-weight: 600; }
-.status-failed, .status-declined { color: #dc3545; font-weight: 600; }
-.status-cancelled { color: #6c757d; font-weight: 600; }
-.log-box { background: #1a1a2e; color: #a8ff78; padding: 12px; border-radius: 4px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; margin-top: 10px; white-space: pre-wrap; }
-.actions { display: flex; gap: 8px; }
-.empty { text-align: center; color: #999; padding: 20px; font-size: 13px; }
+:root {
+  --bg: #f0f2f5;
+  --card: #ffffff;
+  --text: #1a1a2e;
+  --text-secondary: #6b7280;
+  --border: #e5e7eb;
+  --primary: #4a90d9;
+  --primary-hover: #357abd;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --gray: #6b7280;
+  --sidebar-bg: #1e293b;
+  --sidebar-text: #e2e8f0;
+  --sidebar-hover: #334155;
+  --sidebar-active: #4a90d9;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; }
+
+/* Sidebar */
+.sidebar { width: 240px; background: var(--sidebar-bg); color: var(--sidebar-text); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; bottom: 0; z-index: 100; }
+.sidebar-header { padding: 20px; border-bottom: 1px solid #334155; }
+.sidebar-header h1 { font-size: 18px; font-weight: 700; color: #fff; }
+.sidebar-header p { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+.sidebar-nav { padding: 12px 0; flex: 1; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; cursor: pointer; font-size: 14px; color: #94a3b8; border-left: 3px solid transparent; transition: all 0.15s; }
+.nav-item:hover { background: var(--sidebar-hover); color: #e2e8f0; }
+.nav-item.active { background: var(--sidebar-hover); color: #fff; border-left-color: var(--sidebar-active); }
+.nav-icon { width: 18px; text-align: center; }
+.sidebar-footer { padding: 16px 20px; border-top: 1px solid #334155; font-size: 11px; color: #64748b; }
+
+/* Main content */
+.main { margin-left: 240px; flex: 1; min-height: 100vh; }
+.topbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+.topbar h2 { font-size: 20px; font-weight: 600; }
+.health-bar { display: flex; gap: 8px; }
+.health-badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+.health-badge .dot { width: 6px; height: 6px; border-radius: 50%; }
+.health-badge.ok { background: #d1fae5; color: #065f46; }
+.health-badge.ok .dot { background: #10b981; }
+.health-badge.fail { background: #fee2e2; color: #991b1b; }
+.health-badge.fail .dot { background: #ef4444; }
+.health-badge.checking { background: #fef3c7; color: #92400e; }
+.health-badge.checking .dot { background: #f59e0b; }
+
+.content { padding: 24px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Cards */
+.card { background: var(--card); border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 20px; }
+.card h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+
+/* Stats */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.stat-card { background: var(--card); border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.stat-card .label { font-size: 12px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-card .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+.stat-card .value.green { color: var(--success); }
+.stat-card .value.yellow { color: var(--warning); }
+.stat-card .value.red { color: var(--danger); }
+.stat-card .value.blue { color: var(--primary); }
+
+/* Forms */
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--text-secondary); }
+.form-group input { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; transition: border-color 0.15s; }
+.form-group input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(74,144,217,0.1); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* Buttons */
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.15s; }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--primary-hover); }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-danger:hover:not(:disabled) { background: #dc2626; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover:not(:disabled) { background: #059669; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover:not(:disabled) { background: #f9fafb; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-group { display: flex; gap: 8px; margin-top: 12px; }
+
+/* Tables */
+.table-container { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+th { background: #f9fafb; font-weight: 600; color: var(--text-secondary); font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+tr:hover { background: #f9fafb; }
+.empty { text-align: center; color: var(--text-secondary); padding: 32px; font-size: 14px; }
+
+/* Status badges */
+.status { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+.status-pending { background: #fef3c7; color: #92400e; }
+.status-paid, .status-authorized { background: #d1fae5; color: #065f46; }
+.status-failed, .status-declined { background: #fee2e2; color: #991b1b; }
+.status-cancelled { background: #f3f4f6; color: #374151; }
+
+/* Info box */
+.info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 12px 16px; font-size: 13px; color: #1e40af; margin-bottom: 16px; }
+.info-box strong { display: block; margin-bottom: 4px; }
+.info-box code { background: #dbeafe; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+
+/* Warning box */
+.warn-box { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 12px 16px; font-size: 13px; color: #92400e; margin-bottom: 16px; }
+.warn-box strong { display: block; margin-bottom: 4px; }
+
+/* Rate limit tester */
+.rate-test { display: flex; gap: 12px; align-items: flex-end; }
+.rate-result { margin-top: 16px; }
+.rate-bar { display: flex; gap: 2px; margin-top: 8px; flex-wrap: wrap; }
+.rate-bar .req { width: 20px; height: 20px; border-radius: 3px; }
+.rate-bar .req.ok { background: var(--success); }
+.rate-bar .req.limited { background: var(--danger); }
+
+/* Toast */
+#toast-container { position: fixed; top: 16px; right: 16px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; max-width: 360px; }
+.toast { padding: 12px 16px; border-radius: 6px; font-size: 13px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideIn 0.2s ease; }
+.toast-success { background: #d1fae5; color: #065f46; border-left: 4px solid #10b981; }
+.toast-error { background: #fee2e2; color: #991b1b; border-left: 4px solid #ef4444; }
+.toast-info { background: #dbeafe; color: #1e40af; border-left: 4px solid #3b82f6; }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* Order detail */
+.order-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; }
+.order-detail .field { color: var(--text-secondary); }
+.order-detail .value { font-weight: 500; }
+
+/* Spinner */
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { width: 0; overflow: hidden; }
+  .sidebar.open { width: 240px; }
+  .main { margin-left: 0; }
+  .form-row { grid-template-columns: 1fr; }
+  .card-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .order-detail { grid-template-columns: 1fr; }
+  .mobile-menu-btn { display: block; }
+}
+@media (min-width: 769px) {
+  .mobile-menu-btn { display: none; }
+}
+
+/* Architecture diagram */
+.arch-diagram { background: #1e293b; color: #a8ff78; padding: 16px; border-radius: 6px; font-family: monospace; font-size: 11px; line-height: 1.6; overflow-x: auto; white-space: pre; }
 </style>
 </head>
 <body>
-<div class="container">
-  <h1>Microservices Dashboard</h1>
-  <div class="health-bar" id="healthBar"></div>
-  <div class="grid">
-    <div class="card">
-      <h2>Create Order</h2>
-      <div class="form-group">
-        <label>Customer ID</label>
-        <input type="text" id="customerId" value="cust1">
-      </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="customerEmail" value="user@example.com">
-      </div>
-      <div class="form-group">
-        <label>Item Name</label>
-        <input type="text" id="itemName" value="Laptop">
-      </div>
-      <div class="form-group">
-        <label>Amount (cents)</label>
-        <input type="number" id="amount" value="9999">
-      </div>
-      <button class="btn btn-primary" onclick="createOrder()">Create Order</button>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h1>AP2 Microservices</h1>
+    <p>Order &middot; Payment &middot; Notification</p>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-item active" data-tab="overview"><span class="nav-icon"></span>Overview</div>
+    <div class="nav-item" data-tab="orders"><span class="nav-icon"></span>Orders</div>
+    <div class="nav-item" data-tab="payments"><span class="nav-icon"></span>Payments</div>
+    <div class="nav-item" data-tab="system"><span class="nav-icon"></span>System</div>
+  </div>
+  <div class="sidebar-footer">Assignment 4 &middot; Performance Optimization</div>
+</nav>
+
+<main class="main">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <button class="btn btn-outline btn-sm mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">Menu</button>
+      <h2 id="pageTitle">Overview</h2>
     </div>
-    <div class="card">
-      <h2>Process Payment</h2>
-      <div class="form-group">
-        <label>Order ID</label>
-        <input type="text" id="payOrderId" placeholder="Enter order ID">
+    <div class="health-bar" id="healthBar"></div>
+  </div>
+
+  <div class="content">
+    <!-- OVERVIEW TAB -->
+    <div class="tab-panel active" id="tab-overview">
+      <div class="stats-grid" id="statsGrid">
+        <div class="stat-card"><div class="label">Total Orders</div><div class="value blue" id="statOrders">--</div></div>
+        <div class="stat-card"><div class="label">Pending</div><div class="value yellow" id="statPending">--</div></div>
+        <div class="stat-card"><div class="label">Paid</div><div class="value green" id="statPaid">--</div></div>
+        <div class="stat-card"><div class="label">Cancelled</div><div class="value red" id="statCancelled">--</div></div>
       </div>
-      <div class="form-group">
-        <label>Amount (cents)</label>
-        <input type="number" id="payAmount" value="5000">
+
+      <div class="card-grid">
+        <div class="card">
+          <h3>Quick Create Order</h3>
+          <div class="form-group">
+            <label>Customer ID</label>
+            <input type="text" id="qCustomerId" value="cust1">
+          </div>
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" id="qEmail" value="user@example.com">
+          </div>
+          <div class="form-group">
+            <label>Item Name</label>
+            <input type="text" id="qItemName" value="Laptop">
+          </div>
+          <div class="form-group">
+            <label>Amount (cents)</label>
+            <input type="number" id="qAmount" value="9999">
+          </div>
+          <button class="btn btn-primary" onclick="createOrderFromOverview()">Create Order</button>
+        </div>
+        <div class="card">
+          <h3>Recent Orders</h3>
+          <div id="recentOrders"></div>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="payEmail" value="user@example.com">
+
+      <div class="card">
+        <h3>Payment Rule</h3>
+        <div class="info-box">
+          <strong>Automatic payment decision</strong>
+          When you process a payment, the payment service applies this rule:<br>
+          <code>amount &le; 100,000</code> (cents) &rarr; <strong>Authorized</strong><br>
+          <code>amount &gt; 100,000</code> (cents) &rarr; <strong>Declined</strong>
+        </div>
       </div>
-      <button class="btn btn-primary" onclick="processPayment()">Process Payment</button>
     </div>
-    <div class="card">
-      <h2>Orders</h2>
-      <div class="actions" style="margin-bottom:10px">
-        <button class="btn btn-primary btn-sm" onclick="loadOrders()">Refresh</button>
+
+    <!-- ORDERS TAB -->
+    <div class="tab-panel" id="tab-orders">
+      <div class="card">
+        <h3>Lookup Order by ID</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Order ID</label>
+            <input type="text" id="lookupOrderId" placeholder="Enter order UUID">
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end;">
+            <button class="btn btn-primary" onclick="lookupOrder()">Look Up</button>
+          </div>
+        </div>
+        <div id="orderLookupResult"></div>
       </div>
-      <div id="ordersTable"></div>
+
+      <div class="card">
+        <h3>All Orders</h3>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+          <button class="btn btn-outline btn-sm" onclick="loadOrders()">Refresh</button>
+          <button class="btn btn-outline btn-sm" onclick="filterOrders('all')">All</button>
+          <button class="btn btn-outline btn-sm" onclick="filterOrders('Pending')">Pending</button>
+          <button class="btn btn-outline btn-sm" onclick="filterOrders('Paid')">Paid</button>
+          <button class="btn btn-outline btn-sm" onclick="filterOrders('Cancelled')">Cancelled</button>
+          <button class="btn btn-outline btn-sm" onclick="filterOrders('Failed')">Failed</button>
+        </div>
+        <div id="ordersTable"></div>
+      </div>
     </div>
-    <div class="card">
-      <h2>Payments</h2>
-      <div class="form-group">
-        <label>Payment ID</label>
-        <input type="text" id="paymentId" placeholder="Enter payment ID">
+
+    <!-- PAYMENTS TAB -->
+    <div class="tab-panel" id="tab-payments">
+      <div class="card-grid">
+        <div class="card">
+          <h3>Process Payment</h3>
+          <div class="form-group">
+            <label>Order ID</label>
+            <input type="text" id="payOrderId" placeholder="Enter order ID">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Amount (cents)</label>
+              <input type="number" id="payAmount" value="5000">
+            </div>
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="payEmail" value="user@example.com">
+            </div>
+          </div>
+          <button class="btn btn-success" onclick="processPayment()">Process Payment</button>
+          <div class="info-box" style="margin-top:14px;margin-bottom:0;">
+            <strong>Rule</strong>
+            <code>&le; 100,000</code> &rarr; Authorized &middot; <code>&gt; 100,000</code> &rarr; Declined
+          </div>
+        </div>
+        <div class="card">
+          <h3>Lookup Payment</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Payment ID</label>
+              <input type="text" id="lookupPaymentId" placeholder="Enter payment UUID">
+            </div>
+            <div class="form-group" style="display:flex;align-items:flex-end;">
+              <button class="btn btn-primary" onclick="lookupPayment()">Look Up</button>
+            </div>
+          </div>
+          <div id="paymentLookupResult"></div>
+        </div>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="loadPayment()" style="margin-bottom:10px">Get Payment</button>
-      <div id="paymentResult"></div>
+    </div>
+
+    <!-- SYSTEM TAB -->
+    <div class="tab-panel" id="tab-system">
+      <div class="card">
+        <h3>Rate Limiter Tester</h3>
+        <div class="info-box">
+          <strong>How it works</strong>
+          The order service uses Redis-based rate limiting: <code>INCR</code> + <code>EXPIRE</code> per client IP. Default is 10 requests per 60-second window. Returns HTTP 429 when exceeded.
+        </div>
+        <div class="rate-test">
+          <div class="form-group" style="margin:0;">
+            <label>Number of requests</label>
+            <input type="number" id="rateTestCount" value="15" min="1" max="50" style="width:100px;">
+          </div>
+          <button class="btn btn-danger" onclick="runRateLimitTest()" id="rateTestBtn">Run Test</button>
+        </div>
+        <div id="rateTestResult"></div>
+      </div>
+
+      <div class="card">
+        <h3>Architecture</h3>
+        <div class="arch-diagram">External Client
+  |
+  | REST (:8080) [Rate Limiter MW -- Redis]
+  v
++------------------+      gRPC (:9091)      +-----------------+
+|  Order Service   | ---------------------&gt; | Payment Service |
+|  [Redis Cache]   |                        +-----------------+
++------------------+                                |
+      | pg_notify order_updates                      | Publish event
+      v                                               v
+  order_db                                      payment_db
+                                                    |
+                                               RabbitMQ
+                                                    |
+                                                    v
+                                         +------------------------+
+                                         | Notification Service   |
+                                         | [Redis Idempotency]    |
+                                         | [Retry + Backoff]      |
+                                         | [Simulated/SMTP Email] |
+                                         +------------------------+</div>
+      </div>
+
+      <div class="card">
+        <h3>Environment Variables</h3>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Service</th><th>Variable</th><th>Default</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td>order</td><td><code>PORT</code></td><td>8080</td><td>HTTP server port</td></tr>
+              <tr><td>order</td><td><code>ORDER_GRPC_PORT</code></td><td>9090</td><td>gRPC server port</td></tr>
+              <tr><td>order</td><td><code>CACHE_TTL_SECONDS</code></td><td>300</td><td>Redis cache TTL</td></tr>
+              <tr><td>order</td><td><code>RATE_LIMIT_MAX_REQUESTS</code></td><td>10</td><td>Max requests per window</td></tr>
+              <tr><td>order</td><td><code>RATE_LIMIT_WINDOW_SECONDS</code></td><td>60</td><td>Rate limit window</td></tr>
+              <tr><td>payment</td><td><code>PORT</code></td><td>8081</td><td>HTTP server port</td></tr>
+              <tr><td>payment</td><td><code>GRPC_PORT</code></td><td>9091</td><td>gRPC server port</td></tr>
+              <tr><td>notification</td><td><code>PROVIDER_MODE</code></td><td>SIMULATED</td><td>SIMULATED or REAL</td></tr>
+              <tr><td>notification</td><td><code>MAX_RETRY_ATTEMPTS</code></td><td>3</td><td>Max send attempts</td></tr>
+              <tr><td>notification</td><td><code>IDEMPOTENCY_TTL_SECONDS</code></td><td>86400</td><td>Idempotency key TTL</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Service Endpoints</h3>
+        <div class="table-container">
+          <table>
+            <thead><tr><th>Service</th><th>Method</th><th>Path</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td>Order</td><td><code>POST</code></td><td>/orders</td><td>Create a new order</td></tr>
+              <tr><td>Order</td><td><code>GET</code></td><td>/orders</td><td>List all orders</td></tr>
+              <tr><td>Order</td><td><code>GET</code></td><td>/orders/:id</td><td>Get order by ID</td></tr>
+              <tr><td>Order</td><td><code>POST</code></td><td>/orders/:id/cancel</td><td>Cancel a pending order</td></tr>
+              <tr><td>Order</td><td><code>GET</code></td><td>/health</td><td>Health check</td></tr>
+              <tr><td>Payment</td><td><code>POST</code></td><td>/payments/process</td><td>Process payment</td></tr>
+              <tr><td>Payment</td><td><code>GET</code></td><td>/payments/:id</td><td>Get payment by ID</td></tr>
+              <tr><td>Payment</td><td><code>GET</code></td><td>/health</td><td>Health check</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
-  <div class="card" style="margin-top:20px">
-    <h2>Notification Log</h2>
-    <div class="log-box" id="notifLog">Waiting for notifications...</div>
-  </div>
-</div>
+</main>
+
+<div id="toast-container"></div>
+
 <script>
 const ORDER_URL = window.location.origin;
-const PAYMENT_URL = window.location.origin.replace('8080', '8081');
+const PAYMENT_URL = window.location.origin.replace(/:\d+$/, ':8081');
 
+// Toast notifications
+function showToast(message, type) {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-' + (type || 'info');
+  toast.textContent = message;
+  container.appendChild(toast);
+  setTimeout(function() { toast.style.opacity = '0'; setTimeout(function() { toast.remove(); }, 300); }, 4000);
+}
+
+// Tab navigation
+function switchTab(tabName) {
+  document.querySelectorAll('.tab-panel').forEach(function(el) { el.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+  document.getElementById('tab-' + tabName).classList.add('active');
+  document.querySelector('.nav-item[data-tab="' + tabName + '"]').classList.add('active');
+  var titles = { overview: 'Overview', orders: 'Orders', payments: 'Payments', system: 'System' };
+  document.getElementById('pageTitle').textContent = titles[tabName] || tabName;
+  if (tabName === 'overview') refreshStats();
+  if (tabName === 'orders') loadOrders();
+}
+document.querySelectorAll('.nav-item').forEach(function(el) {
+  el.addEventListener('click', function() { switchTab(this.dataset.tab); });
+});
+
+// Health checks
 async function checkHealth() {
-  const bar = document.getElementById('healthBar');
-  const services = [
-    { name: 'Order Service', url: ORDER_URL + '/health' },
-    { name: 'Payment Service', url: PAYMENT_URL + '/health' }
+  var bar = document.getElementById('healthBar');
+  var services = [
+    { name: 'Order', url: ORDER_URL + '/health' },
+    { name: 'Payment', url: PAYMENT_URL + '/health' }
   ];
-  bar.innerHTML = services.map(s => `<span class="health-badge checking" id="h-${s.name.replace(/ /g,'')}">${s.name}: checking...</span>`).join('');
-  for (const s of services) {
-    const el = document.getElementById('h-' + s.name.replace(/ /g,''));
+  bar.innerHTML = services.map(function(s) {
+    return '<span class="health-badge checking" id="h-' + s.name + '">' +
+      '<span class="dot"></span>' + s.name + ': checking</span>';
+  }).join('');
+  for (var i = 0; i < services.length; i++) {
+    var s = services[i];
+    var el = document.getElementById('h-' + s.name);
+    if (!el) continue;
     try {
-      const r = await fetch(s.url);
-      const ok = r.ok;
+      var r = await fetch(s.url, { signal: AbortSignal.timeout(3000) });
+      var ok = r.ok;
       el.className = 'health-badge ' + (ok ? 'ok' : 'fail');
-      el.textContent = s.name + ': ' + (ok ? 'OK' : 'FAIL');
-    } catch {
+      el.innerHTML = '<span class="dot"></span>' + s.name + ': ' + (ok ? 'OK' : 'FAIL');
+    } catch(e) {
       el.className = 'health-badge fail';
-      el.textContent = s.name + ': UNREACHABLE';
+      el.innerHTML = '<span class="dot"></span>' + s.name + ': UNREACHABLE';
     }
   }
 }
 
-async function createOrder() {
-  const body = {
-    customer_id: document.getElementById('customerId').value,
-    customer_email: document.getElementById('customerEmail').value,
-    item_name: document.getElementById('itemName').value,
-    amount: parseInt(document.getElementById('amount').value)
-  };
+// Stats
+async function refreshStats() {
   try {
-    const r = await fetch(ORDER_URL + '/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    const data = await r.json();
-    if (r.ok) {
-      alert('Order created: ' + data.id + '\nStatus: ' + data.status);
-      loadOrders();
-    } else {
-      alert('Error: ' + (data.error || JSON.stringify(data)));
+    var r = await fetch(ORDER_URL + '/orders');
+    if (!r.ok) return;
+    var orders = await r.json();
+    document.getElementById('statOrders').textContent = orders.length;
+    document.getElementById('statPending').textContent = orders.filter(function(o) { return o.status === 'Pending'; }).length;
+    document.getElementById('statPaid').textContent = orders.filter(function(o) { return o.status === 'Paid'; }).length;
+    document.getElementById('statCancelled').textContent = orders.filter(function(o) { return o.status === 'Cancelled'; }).length;
+    var recent = orders.slice(-5).reverse();
+    var container = document.getElementById('recentOrders');
+    if (recent.length === 0) {
+      container.innerHTML = '<div class="empty">No orders yet. Create one above.</div>';
+      return;
     }
-  } catch (e) {
-    alert('Request failed: ' + e.message);
+    var html = '<table><thead><tr><th>Customer</th><th>Item</th><th>Amount</th><th>Status</th></tr></thead><tbody>';
+    recent.forEach(function(o) {
+      html += '<tr><td>' + esc(o.customer_email) + '</td><td>' + esc(o.item_name) +
+        '</td><td>$' + (o.amount / 100).toFixed(2) + '</td><td><span class="status status-' + statusClass(o.status) + '">' + esc(o.status) + '</span></td></tr>';
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+  } catch(e) {
+    document.getElementById('statOrders').textContent = 'ERR';
   }
 }
 
-async function processPayment() {
-  const body = {
-    order_id: document.getElementById('payOrderId').value,
-    amount: parseInt(document.getElementById('payAmount').value),
-    customer_email: document.getElementById('payEmail').value
+// Create order (overview)
+async function createOrderFromOverview() {
+  var body = {
+    customer_id: document.getElementById('qCustomerId').value.trim(),
+    customer_email: document.getElementById('qEmail').value.trim(),
+    item_name: document.getElementById('qItemName').value.trim(),
+    amount: parseInt(document.getElementById('qAmount').value)
   };
+  if (!body.customer_id || !body.customer_email || !body.item_name || !body.amount) {
+    showToast('All fields are required', 'error');
+    return;
+  }
   try {
-    const r = await fetch(PAYMENT_URL + '/payments/process', {
+    var r = await fetch(ORDER_URL + '/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    const data = await r.json();
+    var data = await r.json();
     if (r.ok) {
-      alert('Payment processed: ' + data.id + '\nStatus: ' + data.status);
+      showToast('Order created: ' + data.id, 'success');
+      refreshStats();
     } else {
-      alert('Error: ' + (data.error || JSON.stringify(data)));
+      showToast('Error: ' + (data.error || r.status), 'error');
     }
-  } catch (e) {
-    alert('Request failed: ' + e.message);
+  } catch(e) {
+    showToast('Request failed: ' + e.message, 'error');
   }
 }
+
+// Orders
+var allOrders = [];
 
 async function loadOrders() {
-  const container = document.getElementById('ordersTable');
-  container.innerHTML = '<div class="empty">Loading...</div>';
+  var container = document.getElementById('ordersTable');
+  container.innerHTML = '<div class="empty"><span class="spinner"></span> Loading...</div>';
   try {
-    const r = await fetch(ORDER_URL + '/orders');
-    if (r.ok) {
-      const orders = await r.json();
-      if (!orders.length) {
-        container.innerHTML = '<div class="empty">No orders yet</div>';
-        return;
-      }
-      let html = '<table><thead><tr><th>ID</th><th>Customer</th><th>Item</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody>';
-      orders.forEach(o => {
-        const cls = 'status-' + o.status.toLowerCase();
-        html += `<tr>
-          <td style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis">${o.id}</td>
-          <td>${o.customer_email}</td>
-          <td>${o.item_name}</td>
-          <td>$${(o.amount/100).toFixed(2)}</td>
-          <td class="${cls}">${o.status}</td>
-          <td>${o.status === 'Pending' ? `<button class="btn btn-danger btn-sm" onclick="cancelOrder('${o.id}')">Cancel</button>` : '-'}</td>
-        </tr>`;
-      });
-      html += '</tbody></table>';
-      container.innerHTML = html;
-    } else {
-      container.innerHTML = '<div class="empty">Failed to load orders</div>';
-    }
-  } catch {
+    var r = await fetch(ORDER_URL + '/orders');
+    if (!r.ok) { container.innerHTML = '<div class="empty">Failed to load orders (HTTP ' + r.status + ')</div>'; return; }
+    allOrders = await r.json();
+    renderOrders(allOrders);
+  } catch(e) {
     container.innerHTML = '<div class="empty">Connection error</div>';
   }
+}
+
+function renderOrders(orders) {
+  var container = document.getElementById('ordersTable');
+  if (orders.length === 0) { container.innerHTML = '<div class="empty">No orders found</div>'; return; }
+  var html = '<table><thead><tr><th>ID</th><th>Customer</th><th>Item</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+  orders.slice().reverse().forEach(function(o) {
+    var actions = '';
+    if (o.status === 'Pending') {
+      actions = '<button class="btn btn-danger btn-sm" onclick="cancelOrder(\'' + esc(o.id) + '\')">Cancel</button>';
+    } else {
+      actions = '-';
+    }
+    html += '<tr><td style="font-size:11px;font-family:monospace;">' + esc(o.id) + '</td>' +
+      '<td>' + esc(o.customer_email) + '</td>' +
+      '<td>' + esc(o.item_name) + '</td>' +
+      '<td>$' + (o.amount / 100).toFixed(2) + '</td>' +
+      '<td><span class="status status-' + statusClass(o.status) + '">' + esc(o.status) + '</span></td>' +
+      '<td>' + actions + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function filterOrders(status) {
+  if (status === 'all') { renderOrders(allOrders); return; }
+  renderOrders(allOrders.filter(function(o) { return o.status === status; }));
 }
 
 async function cancelOrder(id) {
   try {
-    const r = await fetch(ORDER_URL + '/orders/' + id + '/cancel', { method: 'POST' });
+    var r = await fetch(ORDER_URL + '/orders/' + id + '/cancel', { method: 'POST' });
+    var data = await r.json();
     if (r.ok) {
-      alert('Order cancelled');
+      showToast('Order cancelled', 'success');
       loadOrders();
+      refreshStats();
     } else {
-      const data = await r.json();
-      alert('Error: ' + (data.error || JSON.stringify(data)));
+      showToast('Error: ' + (data.error || r.status), 'error');
     }
-  } catch (e) {
-    alert('Request failed: ' + e.message);
+  } catch(e) {
+    showToast('Request failed: ' + e.message, 'error');
   }
 }
 
-async function loadPayment() {
-  const id = document.getElementById('paymentId').value;
-  const container = document.getElementById('paymentResult');
-  if (!id) { container.innerHTML = ''; return; }
+async function lookupOrder() {
+  var id = document.getElementById('lookupOrderId').value.trim();
+  if (!id) { showToast('Enter an order ID', 'error'); return; }
+  var container = document.getElementById('orderLookupResult');
+  container.innerHTML = '<div class="empty"><span class="spinner"></span> Looking up...</div>';
   try {
-    const r = await fetch(PAYMENT_URL + '/payments/' + id);
-    const data = await r.json();
-    if (r.ok) {
-      const cls = 'status-' + data.status.toLowerCase();
-      container.innerHTML = `<table><tr><th>Field</th><th>Value</th></tr>
-        <tr><td>ID</td><td style="font-size:11px">${data.id}</td></tr>
-        <tr><td>Order ID</td><td style="font-size:11px">${data.order_id}</td></tr>
-        <tr><td>Amount</td><td>$${(data.amount/100).toFixed(2)}</td></tr>
-        <tr><td>Status</td><td class="${cls}">${data.status}</td></tr>
-        <tr><td>Transaction</td><td style="font-size:11px">${data.transaction_id}</td></tr>
-      </table>`;
-    } else {
-      container.innerHTML = '<div class="empty">Payment not found</div>';
+    var r = await fetch(ORDER_URL + '/orders/' + id);
+    if (!r.ok) {
+      var data = await r.json();
+      container.innerHTML = '<div class="warn-box"><strong>Not Found</strong>' + esc(data.error || 'Order not found') + '</div>';
+      return;
     }
-  } catch {
+    var o = await r.json();
+    container.innerHTML = '<div class="card" style="box-shadow:none;padding:12px 0;border:none;">' +
+      '<div class="order-detail">' +
+      '<div class="field">ID</div><div class="value" style="font-family:monospace;font-size:11px;">' + esc(o.id) + '</div>' +
+      '<div class="field">Customer ID</div><div class="value">' + esc(o.customer_id) + '</div>' +
+      '<div class="field">Email</div><div class="value">' + esc(o.customer_email) + '</div>' +
+      '<div class="field">Item</div><div class="value">' + esc(o.item_name) + '</div>' +
+      '<div class="field">Amount</div><div class="value">$' + (o.amount / 100).toFixed(2) + '</div>' +
+      '<div class="field">Status</div><div class="value"><span class="status status-' + statusClass(o.status) + '">' + esc(o.status) + '</span></div>' +
+      '</div></div>';
+  } catch(e) {
     container.innerHTML = '<div class="empty">Connection error</div>';
   }
 }
 
-function addNotification(text) {
-  const box = document.getElementById('notifLog');
-  if (box.textContent === 'Waiting for notifications...') box.textContent = '';
-  box.textContent += text + '\n';
-  box.scrollTop = box.scrollHeight;
+// Payments
+async function processPayment() {
+  var body = {
+    order_id: document.getElementById('payOrderId').value.trim(),
+    amount: parseInt(document.getElementById('payAmount').value),
+    customer_email: document.getElementById('payEmail').value.trim()
+  };
+  if (!body.order_id || !body.amount || !body.customer_email) {
+    showToast('All fields are required', 'error');
+    return;
+  }
+  try {
+    var r = await fetch(PAYMENT_URL + '/payments/process', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    var data = await r.json();
+    if (r.ok) {
+      showToast('Payment ' + data.status + ': ' + data.id, data.status === 'Authorized' ? 'success' : 'error');
+    } else {
+      showToast('Error: ' + (data.error || r.status), 'error');
+    }
+  } catch(e) {
+    showToast('Request failed: ' + e.message, 'error');
+  }
 }
 
+async function lookupPayment() {
+  var id = document.getElementById('lookupPaymentId').value.trim();
+  if (!id) { showToast('Enter a payment ID', 'error'); return; }
+  var container = document.getElementById('paymentLookupResult');
+  container.innerHTML = '<div class="empty"><span class="spinner"></span> Looking up...</div>';
+  try {
+    var r = await fetch(PAYMENT_URL + '/payments/' + id);
+    if (!r.ok) {
+      var data = await r.json();
+      container.innerHTML = '<div class="warn-box"><strong>Not Found</strong>' + esc(data.error || 'Payment not found') + '</div>';
+      return;
+    }
+    var p = await r.json();
+    container.innerHTML = '<div style="margin-top:12px;">' +
+      '<table><tr><th>Field</th><th>Value</th></tr>' +
+      '<tr><td>ID</td><td style="font-family:monospace;font-size:11px;">' + esc(p.id) + '</td></tr>' +
+      '<tr><td>Order ID</td><td style="font-family:monospace;font-size:11px;">' + esc(p.order_id) + '</td></tr>' +
+      '<tr><td>Amount</td><td>$' + (p.amount / 100).toFixed(2) + '</td></tr>' +
+      '<tr><td>Status</td><td><span class="status status-' + statusClass(p.status) + '">' + esc(p.status) + '</span></td></tr>' +
+      '<tr><td>Transaction</td><td style="font-family:monospace;font-size:11px;">' + esc(p.transaction_id) + '</td></tr>' +
+      '</table></div>';
+  } catch(e) {
+    container.innerHTML = '<div class="empty">Connection error</div>';
+  }
+}
+
+// Rate limit tester
+async function runRateLimitTest() {
+  var count = parseInt(document.getElementById('rateTestCount').value) || 15;
+  var btn = document.getElementById('rateTestBtn');
+  var result = document.getElementById('rateTestResult');
+  btn.disabled = true;
+  btn.textContent = 'Running...';
+  result.innerHTML = '<div class="empty"><span class="spinner"></span> Sending requests...</div>';
+
+  var okCount = 0;
+  var limitedCount = 0;
+  var results = [];
+  var errors = 0;
+
+  for (var i = 0; i < count; i++) {
+    try {
+      var r = await fetch(ORDER_URL + '/orders');
+      if (r.status === 429) {
+        limitedCount++;
+        results.push('limited');
+      } else if (r.ok) {
+        okCount++;
+        results.push('ok');
+      } else {
+        errors++;
+        results.push('error');
+      }
+    } catch(e) {
+      errors++;
+      results.push('error');
+    }
+  }
+
+  var bars = results.map(function(r) {
+    if (r === 'ok') return '<div class="req ok"></div>';
+    if (r === 'limited') return '<div class="req limited"></div>';
+    return '<div class="req" style="background:#9ca3af;"></div>';
+  }).join('');
+
+  result.innerHTML = '<div class="rate-result">' +
+    '<div style="display:flex;gap:16px;font-size:13px;">' +
+    '<span style="color:var(--success);font-weight:600;">OK: ' + okCount + '</span>' +
+    '<span style="color:var(--danger);font-weight:600;">Limited: ' + limitedCount + '</span>' +
+    (errors > 0 ? '<span style="color:#9ca3af;font-weight:600;">Errors: ' + errors + '</span>' : '') +
+    '</div>' +
+    '<div class="rate-bar">' + bars + '</div></div>';
+
+  btn.disabled = false;
+  btn.textContent = 'Run Test';
+
+  if (limitedCount > 0) {
+    showToast('Rate limit hit after ' + okCount + ' requests', 'error');
+  } else {
+    showToast('All ' + okCount + ' requests succeeded', 'success');
+  }
+}
+
+// Helpers
+function statusClass(status) {
+  var s = status.toLowerCase();
+  if (s === 'paid' || s === 'authorized') return s;
+  if (s === 'pending' || s === 'failed' || s === 'declined' || s === 'cancelled') return s;
+  return 'pending';
+}
+
+function esc(str) {
+  if (!str) return '';
+  var div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Init
 checkHealth();
+refreshStats();
 loadOrders();
 setInterval(checkHealth, 30000);
 </script>
