@@ -1,9 +1,12 @@
 package service
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"time"
 
+	"github.com/nurashi/order-service/internal/cache"
 	"github.com/nurashi/order-service/internal/domain"
 
 	"github.com/google/uuid"
@@ -23,12 +26,14 @@ type OrderService interface {
 type orderService struct {
 	repo          domain.OrderRepository
 	paymentClient PaymentClient
+	cache         cache.OrderCache
 }
 
-func NewOrderService(repo domain.OrderRepository, paymentClient PaymentClient) OrderService {
+func NewOrderService(repo domain.OrderRepository, paymentClient PaymentClient, c cache.OrderCache) OrderService {
 	return &orderService{
 		repo:          repo,
 		paymentClient: paymentClient,
+		cache:         c,
 	}
 }
 
@@ -55,6 +60,7 @@ func (s *orderService) CreateOrder(customerID, customerEmail, itemName string, a
 		if updateErr := s.repo.Update(order); updateErr != nil {
 			return nil, fmt.Errorf("failed to update order after payment error: %w", updateErr)
 		}
+		s.invalidateCache(order.ID)
 		return nil, fmt.Errorf("payment processing failed: %w", err)
 	}
 
@@ -69,11 +75,34 @@ func (s *orderService) CreateOrder(customerID, customerEmail, itemName string, a
 		return nil, fmt.Errorf("failed to update order status: %w", err)
 	}
 
+	s.invalidateCache(order.ID)
+
 	return order, nil
 }
 
 func (s *orderService) GetOrder(id string) (*domain.Order, error) {
-	return s.repo.GetByID(id)
+	cached, err := s.cache.Get(context.Background(), id)
+	if err != nil {
+		log.Printf("cache get error for order %s: %v", id, err)
+	}
+
+	if cached != nil {
+		log.Printf("[CACHE HIT] order %s", id)
+		return cached, nil
+	}
+
+	log.Printf("[CACHE MISS] order %s", id)
+
+	order, err := s.repo.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	if setErr := s.cache.Set(context.Background(), order); setErr != nil {
+		log.Printf("cache set error for order %s: %v", id, setErr)
+	}
+
+	return order, nil
 }
 
 func (s *orderService) GetAllOrders() ([]*domain.Order, error) {
@@ -97,5 +126,13 @@ func (s *orderService) CancelOrder(id string) error {
 		return fmt.Errorf("failed to cancel order: %w", err)
 	}
 
+	s.invalidateCache(id)
+
 	return nil
+}
+
+func (s *orderService) invalidateCache(id string) {
+	if err := s.cache.Delete(context.Background(), id); err != nil {
+		log.Printf("cache delete error for order %s: %v", id, err)
+	}
 }

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -13,6 +14,8 @@ type Config struct {
 	Server         ServerConfig
 	Database       DatabaseConfig
 	PaymentService PaymentServiceConfig
+	Redis          RedisConfig
+	RateLimiter    RateLimiterConfig
 }
 
 type ServerConfig struct {
@@ -32,6 +35,17 @@ type DatabaseConfig struct {
 
 type PaymentServiceConfig struct {
 	GRPCAddress string
+}
+
+type RedisConfig struct {
+	Host            string
+	Port            string
+	CacheTTLSeconds int
+}
+
+type RateLimiterConfig struct {
+	MaxRequests   int
+	WindowSeconds int
 }
 
 func Load() (*Config, error) {
@@ -56,12 +70,20 @@ func Load() (*Config, error) {
 		PaymentService: PaymentServiceConfig{
 			GRPCAddress: getEnv("PAYMENT_GRPC_ADDRESS", "localhost:9091"),
 		},
+		Redis: RedisConfig{
+			Host:            getEnv("REDIS_HOST", "localhost"),
+			Port:            getEnv("REDIS_PORT", "6379"),
+			CacheTTLSeconds: getEnvInt("CACHE_TTL_SECONDS", 300),
+		},
+		RateLimiter: RateLimiterConfig{
+			MaxRequests:   getEnvInt("RATE_LIMIT_MAX_REQUESTS", 10),
+			WindowSeconds: getEnvInt("RATE_LIMIT_WINDOW_SECONDS", 60),
+		},
 	}
 
 	return cfg, nil
 }
 
-// GRPCListenAddr returns host:port for the order gRPC server from ORDER_GRPC_HOST and ORDER_GRPC_PORT.
 func (c *Config) GRPCListenAddr() string {
 	return net.JoinHostPort(c.Server.GRPCHost, c.Server.GRPCPort)
 }
@@ -77,9 +99,22 @@ func (c *Config) GetDSN() string {
 	)
 }
 
+func (c *Config) RedisAddr() string {
+	return net.JoinHostPort(c.Redis.Host, c.Redis.Port)
+}
+
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvInt(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if i, err := strconv.Atoi(value); err == nil {
+			return i
+		}
 	}
 	return defaultValue
 }

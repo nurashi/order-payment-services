@@ -7,13 +7,15 @@ import (
 	"os/signal"
 	"syscall"
 
+	notifcache "github.com/nurashi/notification-service/internal/cache"
 	"github.com/nurashi/notification-service/internal/config"
 	"github.com/nurashi/notification-service/internal/messaging/rabbitmq"
 	"github.com/nurashi/notification-service/internal/migration"
-	"github.com/nurashi/notification-service/internal/repository"
+	"github.com/nurashi/notification-service/internal/provider"
 	"github.com/nurashi/notification-service/internal/service"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -39,6 +41,33 @@ func main() {
 	}
 	log.Println("Migrations applied successfully")
 
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: cfg.RedisAddr(),
+	})
+
+	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+		log.Fatalf("Unable to connect to Redis: %v", err)
+	}
+	log.Println("Connected to Redis successfully")
+
+	idempotencyStore := notifcache.NewRedisIdempotencyStore(redisClient, cfg.Redis.IdempotencyTTLSecs)
+
+	var sender provider.EmailSender
+	switch cfg.Provider.Mode {
+	case "REAL":
+		sender = provider.NewSMTPEmailSender(
+			cfg.Provider.SMTPHost,
+			cfg.Provider.SMTPPort,
+			cfg.Provider.SMTPUser,
+			cfg.Provider.SMTPPass,
+			cfg.Provider.FromAddr,
+		)
+		log.Println("Using REAL SMTP email provider")
+	default:
+		sender = provider.NewSimulatedEmailSender()
+		log.Println("Using SIMULATED email provider")
+	}
+
 	consumer, err := rabbitmq.NewRabbitMQConsumer(
 		cfg.RabbitMQ.Host,
 		cfg.RabbitMQ.Port,
@@ -50,8 +79,12 @@ func main() {
 		log.Fatalf("Failed to create RabbitMQ consumer: %v", err)
 	}
 
-	idempotencyRepo := repository.NewIdempotencyRepository(dbpool)
-	notificationSvc := service.NewNotificationService(idempotencyRepo)
+	notificationSvc := service.NewNotificationService(
+		idempotencyStore,
+		sender,
+		cfg.Retry.MaxAttempts,
+		cfg.Retry.InitialBackoffSeconds,
+	)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -72,6 +105,7 @@ func main() {
 	if err := consumer.Stop(); err != nil {
 		log.Printf("Error stopping consumer: %v", err)
 	}
+	redisClient.Close()
 
 	log.Println("Notification service stopped")
 }

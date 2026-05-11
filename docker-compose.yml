@@ -20,6 +20,20 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      - ap2-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: rabbitmq
@@ -86,6 +100,11 @@ services:
       DB_PASSWORD: "123456"
       DB_NAME: "order_db"
       DB_SSLMODE: "disable"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      CACHE_TTL_SECONDS: "300"
+      RATE_LIMIT_MAX_REQUESTS: "10"
+      RATE_LIMIT_WINDOW_SECONDS: "60"
     ports:
       - "8080:8080"
       - "9090:9090"
@@ -94,6 +113,8 @@ services:
         condition: service_healthy
       payment-service:
         condition: service_started
+      redis:
+        condition: service_healthy
     networks:
       - ap2-network
 
@@ -114,10 +135,18 @@ services:
       RABBITMQ_PORT: "5672"
       RABBITMQ_USER: "rabbitmq"
       RABBITMQ_PASSWORD: "rabbitmq123"
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      PROVIDER_MODE: "SIMULATED"
+      MAX_RETRY_ATTEMPTS: "3"
+      INITIAL_BACKOFF_SECONDS: "2"
+      IDEMPOTENCY_TTL_SECONDS: "86400"
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - ap2-network

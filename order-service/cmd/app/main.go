@@ -10,6 +10,8 @@ import (
 
 	orderpb "github.com/nurashi/ap2-generated/order/v1"
 	"github.com/nurashi/order-service/internal/api"
+	"github.com/nurashi/order-service/internal/api/middleware"
+	"github.com/nurashi/order-service/internal/cache"
 	"github.com/nurashi/order-service/internal/config"
 	grpcclient "github.com/nurashi/order-service/internal/grpc"
 	"github.com/nurashi/order-service/internal/migration"
@@ -18,6 +20,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -45,6 +48,17 @@ func main() {
 	}
 	log.Println("Migrations applied successfully")
 
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: cfg.RedisAddr(),
+	})
+
+	if err := redisClient.Ping(context.Background()).Err(); err != nil {
+		log.Fatalf("Unable to connect to Redis: %v", err)
+	}
+	log.Println("Connected to Redis successfully")
+
+	orderCache := cache.NewRedisOrderCache(redisClient, cfg.Redis.CacheTTLSeconds)
+
 	paymentClient, err := grpcclient.NewPaymentClient(cfg.PaymentService.GRPCAddress)
 	if err != nil {
 		log.Fatalf("Failed to create payment gRPC client: %v", err)
@@ -52,7 +66,7 @@ func main() {
 
 	orderRepo := repository.NewOrderRepository(dbpool)
 	orderSubscriber := repository.NewOrderSubscriber(cfg.GetDSN(), orderRepo)
-	orderSvc := service.NewOrderService(orderRepo, paymentClient)
+	orderSvc := service.NewOrderService(orderRepo, paymentClient, orderCache)
 
 	grpcSrv := grpc.NewServer()
 	orderpb.RegisterOrderServiceServer(grpcSrv, grpcclient.NewOrderServer(orderSubscriber))
@@ -82,6 +96,7 @@ func main() {
 		}
 		c.Next()
 	})
+	router.Use(middleware.RateLimiter(redisClient, cfg.RateLimiter.MaxRequests, cfg.RateLimiter.WindowSeconds))
 	router.Static("/static", "./static")
 	router.NoRoute(func(c *gin.Context) {
 		c.File("./static/index.html")
@@ -106,6 +121,7 @@ func main() {
 
 	grpcSrv.GracefulStop()
 	dbpool.Close()
+	redisClient.Close()
 
 	log.Println("Order service stopped")
 }
